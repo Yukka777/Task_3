@@ -3,7 +3,6 @@ import tempfile
 from selenium import webdriver
 from urls import Urls
 import requests
-from helpers import create_random_email, create_random_password, create_random_name
 import urllib3
 import warnings
 import os
