@@ -3,22 +3,17 @@ import tempfile
 from selenium import webdriver
 from urls import Urls
 import requests
-import urllib3
 import warnings
 import os
 import ssl
-from requests.packages.urllib3.exceptions import InsecureRequestWarning
+import random
+import string
 
-# АГРЕССИВНОЕ ОТКЛЮЧЕНИЕ SSL ПРОВЕРОК
+# Деактивация проверок SSL соединения
 os.environ['PYTHONHTTPSVERIFY'] = '0'
 os.environ['CURL_CA_BUNDLE'] = ''
 
-# Отключить все SSL предупреждения
-urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-warnings.filterwarnings("ignore", category=InsecureRequestWarning)
-requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
-
-# Отключить SSL проверку на уровне контекста
+# Отключение верификации SSL на системном уровне
 try:
     _create_unverified_https_context = ssl._create_unverified_context
 except AttributeError:
@@ -26,96 +21,112 @@ except AttributeError:
 else:
     ssl._create_default_https_context = _create_unverified_https_context
 
-# Создать сессию с отключенной SSL проверкой
+# Инициализация сессии HTTP с отключенной SSL верификацией
 session = requests.Session()
 session.verify = False
 adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
 session.mount('http://', adapter)
 session.mount('https://', adapter)
 
+# Утилиты генерации тестовых данных
+def create_random_email():
+    """Создание произвольного email адреса для тестирования"""
+    username = ''.join(random.choices(string.ascii_lowercase, k=8))
+    domain = ''.join(random.choices(string.ascii_lowercase, k=6))
+    return f"{username}@{domain}.com"
+
+def create_random_password():
+    """Генерация произвольного пароля для тестовых сценариев"""
+    characters = string.ascii_letters + string.digits
+    return ''.join(random.choices(characters, k=10))
+
+def create_random_name():
+    """Создание произвольного имени пользователя"""
+    return ''.join(random.choices(string.ascii_letters, k=10))
+
 @pytest.fixture(params=['firefox', 'chrome'])
 def driver(request):
-    """Фикстура для инициализации веб-драйвера с поддержкой Chrome и Firefox
+    """Инициализация веб-драйвера с поддержкой нескольких браузеров
     
-    Особенности:
-    - Параметризация для тестирования в обоих браузерах
-    - Уникальная user-data-dir для Chrome для избежания конфликтов
-    - Автоматическое закрытие драйвера после тестов
+    Ключевые характеристики:
+    - Параметризованный выбор браузера для кроссплатформенного тестирования
+    - Изолированные пользовательские профили для Chrome
+    - Автоматическое освобождение ресурсов по завершении тестов
     """
-    browser_name = request.param
-    driver = None
+    browser_type = request.param
+    driver_instance = None
     
     try:
-        if browser_name == 'firefox':
-            options = webdriver.FirefoxOptions()
-            options.add_argument('--width=1920')
-            options.add_argument('--height=1080')
-            # ОТКЛЮЧЕНИЕ ПРОКСИ ДЛЯ FIREFOX
-            options.set_preference('network.proxy.type', 0)
-            options.set_preference('network.proxy.socks_remote_dns', False)
-            options.set_preference('network.http.use-cache', True)
-            options.set_preference('browser.cache.disk.enable', True)
-            options.set_preference('browser.cache.memory.enable', True)
-            options.set_preference('browser.cache.offline.enable', True)
-            driver = webdriver.Firefox(options=options)
+        if browser_type == 'firefox':
+            browser_options = webdriver.FirefoxOptions()
+            browser_options.add_argument('--width=1920')
+            browser_options.add_argument('--height=1080')
+            # Деактивация прокси-сервера для Firefox
+            browser_options.set_preference('network.proxy.type', 0)
+            browser_options.set_preference('network.proxy.socks_remote_dns', False)
+            browser_options.set_preference('network.http.use-cache', True)
+            browser_options.set_preference('browser.cache.disk.enable', True)
+            browser_options.set_preference('browser.cache.memory.enable', True)
+            browser_options.set_preference('browser.cache.offline.enable', True)
+            driver_instance = webdriver.Firefox(options=browser_options)
             
-        elif browser_name == 'chrome':
-            options = webdriver.ChromeOptions()
-            options.add_argument("--no-sandbox")
-            options.add_argument("--disable-dev-shm-usage")
-            options.add_argument("--window-size=1920,1080")
-            # ОТКЛЮЧЕНИЕ ПРОКСИ ДЛЯ CHROME
-            options.add_argument("--no-proxy-server")
-            options.add_argument("--proxy-server='direct://'")
-            options.add_argument("--proxy-bypass-list=*")
-            options.add_argument("--ignore-certificate-errors")
-            options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        elif browser_type == 'chrome':
+            browser_options = webdriver.ChromeOptions()
+            browser_options.add_argument("--no-sandbox")
+            browser_options.add_argument("--disable-dev-shm-usage")
+            browser_options.add_argument("--window-size=1920,1080")
+            # Деактивация прокси-сервера для Chrome
+            browser_options.add_argument("--no-proxy-server")
+            browser_options.add_argument("--proxy-server='direct://'")
+            browser_options.add_argument("--proxy-bypass-list=*")
+            browser_options.add_argument("--ignore-certificate-errors")
+            browser_options.add_experimental_option("excludeSwitches", ["enable-logging"])
             
-            temp_dir = tempfile.mkdtemp()
-            options.add_argument(f"--user-data-dir={temp_dir}")
-            driver = webdriver.Chrome(options=options)
+            temporary_directory = tempfile.mkdtemp()
+            browser_options.add_argument(f"--user-data-dir={temporary_directory}")
+            driver_instance = webdriver.Chrome(options=browser_options)
         
-        # УВЕЛИЧИВАЕМ ТАЙМАУТЫ
-        driver.implicitly_wait(30)
-        driver.set_page_load_timeout(30)
-        driver.set_script_timeout(30)
+        # Установка увеличенных таймаутов для стабильности тестов
+        driver_instance.implicitly_wait(30)
+        driver_instance.set_page_load_timeout(30)
+        driver_instance.set_script_timeout(30)
         
-        # ЯВНОЕ ОТКЛЮЧЕНИЕ ПРОКСИ НА УРОВНЕ DRIVER
+        # Прямое отключение прокси на уровне драйвера
         try:
-            driver.command_executor._proxy = None
+            driver_instance.command_executor._proxy = None
         except:
             pass
             
-        driver.get(Urls.BASE_URL)
-        yield driver
+        driver_instance.get(Urls.BASE_URL)
+        yield driver_instance
         
-    except Exception as e:
-        print(f"Ошибка при инициализации драйвера {browser_name}: {e}")
-        if driver:
-            driver.quit()
+    except Exception as error:
+        print(f"Ошибка инициализации драйвера {browser_type}: {error}")
+        if driver_instance:
+            driver_instance.quit()
         raise
         
     finally:
-        if driver:
-            driver.quit()
+        if driver_instance:
+            driver_instance.quit()
 
 @pytest.fixture
 def create_new_user_and_delete():
-    """Фикстура для создания временного пользователя с автоматическим удалением"""
-    # Генерация случайных учетных данных
-    payload_cred = {
+    """Создание временного пользователя с автоматической очисткой после тестов"""
+    # Формирование случайных учетных данных
+    credentials = {
         'email': create_random_email(),
         'password': create_random_password(),
         'name': create_random_name()
     }
     
-    # Используем сессию с отключенной SSL проверкой
-    response = session.post(Urls.USER_REGISTER, data=payload_cred)
-    response_body = response.json()
+    # Использование сессии с отключенной SSL проверкой
+    registration_response = session.post(Urls.USER_REGISTER, data=credentials)
+    response_data = registration_response.json()
 
-    # Возврат данных для использования в тестах
-    yield payload_cred, response_body
+    # Предоставление данных для тестирования
+    yield credentials, response_data
 
-    # Автоматическое удаление пользователя после теста
-    access_token = response_body['accessToken']
-    session.delete(Urls.USER_DELETE, headers={'Authorization': access_token})
+    # Автоматическая очистка тестового пользователя
+    auth_token = response_data['accessToken']
+    session.delete(Urls.USER_DELETE, headers={'Authorization': auth_token})
