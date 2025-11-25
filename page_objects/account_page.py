@@ -3,46 +3,46 @@ from locators.account_page_locators import AccountPageLocators
 import allure
 
 class AccountPage(BasePage):
-    # === МЕТОДЫ АВТОРИЗАЦИИ ===
+    # Действия с формой аутентификации
     
-    @allure.step('Ввести email')
+    @allure.step('Заполнить поле email')
     def enter_email(self, email):
-        """Ввод email в поле авторизации"""
+        """Ввод адреса электронной почты в соответствующее поле"""
         self.send_keys_to_input(AccountPageLocators.INPUT_EMAIL, email)
     
-    @allure.step('Ввести пароль')
+    @allure.step('Заполнить поле пароля')
     def enter_password(self, password):
-        """Ввод пароля в поле авторизации"""
+        """Ввод пароля в предназначенное для этого поле"""
         self.send_keys_to_input(AccountPageLocators.INPUT_PASSWORD, password)
     
-    @allure.step('Нажать кнопку "Войти"')
+    @allure.step('Выполнить авторизацию"')
     def click_login_button(self):
-        """Клик по кнопке входа в систему"""
+        """Активация кнопки для выполнения входа в систему"""
         self.click_on_element(AccountPageLocators.BUTTON_LOGIN)
     
-    @allure.step('Проверить отображение страницы входа')
+    @allure.step('Проверить видимость формы входа')
     def check_login_page_displayed(self):
-        """Проверка что страница авторизации загружена"""
+        """Проверка отображения интерфейса авторизации"""
         return self.check_displaying_of_element(AccountPageLocators.LOGIN_TITLE)
 
-    @allure.step('Подождать прогрузки кнопки "Зарегистрироваться"')
+    @allure.step('Дождаться появления кнопки регистрации"')
     def wait_visibility_of_button_register(self):
-        """Ожидание появления кнопки регистрации на странице"""
+        """Ожидание отображения элемента регистрации на странице"""
         self.wait_visibility_of_element(AccountPageLocators.BUTTON_REGISTER)
 
-    @allure.step('Проверить отображение кнопки "Зарегистрироваться"')
+    @allure.step('Проверить доступность кнопки регистрации"')
     def check_displaying_of_button_register(self):
-        """Проверка отображения кнопки регистрации (признак страницы входа)"""
+        """Подтверждение наличия элемента регистрации на странице"""
         return self.check_displaying_of_element(AccountPageLocators.BUTTON_REGISTER)
 
     # === МЕТОДЫ ЛИЧНОГО КАБИНЕТА ===
     
-    @allure.step('Проверить отображение кнопки "Выйти"')
+    @allure.step('Проверить наличие кнопки выхода из системы"')
     def check_logout_button_displayed(self):
-        """Проверка наличия кнопки выхода (признак успешной авторизации)"""
+        """Проверка отображения элемента для завершения сеанса"""
         return self.check_displaying_of_element(AccountPageLocators.BUTTON_LOGOUT)
 
-    @allure.step('Кликнуть по кнопке "Выйти"')
+    @allure.step('Активировать выход из профиля')
     def click_on_logout_button(self):
-        """Клик по кнопке выхода из учетной записи"""
+        """Выполнение действия по завершению пользовательской сессии"""
         self.click_on_element(AccountPageLocators.BUTTON_LOGOUT)
