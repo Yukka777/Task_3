@@ -43,6 +43,12 @@ class ForgotPasswordPage:
     @allure.step('Проверить переход на страницу сброса пароля')
     def check_reset_form_displayed(self):
         """Проверка перехода на страницу сброса пароля"""
-        # Простая проверка URL - если перешли на reset-password, тест успешен
+        # Используем URL из локаторов
         current_url = self.driver.current_url
-        return "reset-password" in current_url
+        return ForgotPasswordLocators.RESET_PASSWORD_URL in current_url
+
+    @allure.step('Дождаться перехода на страницу сброса пароля')
+    def wait_for_reset_page(self, timeout=10):
+        """Ожидание перехода на страницу сброса пароля"""
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(EC.url_contains(ForgotPasswordLocators.RESET_PASSWORD_URL))
