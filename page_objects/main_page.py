@@ -30,7 +30,7 @@ class MainPage(BasePage):
     
     
     @allure.step('Выполнить вход через главную страницу')
-    def click_on_button_login_in_main(self):
+    def click_login_account_button(self):
         """Инициация процесса аутентификации с главной страницы"""
         self.click_on_element(MainPageLocators.BUTTON_LOGIN_TO_ORDER)
 
@@ -121,6 +121,26 @@ class MainPage(BasePage):
         self.send_keys_to_input(AccountPageLocators.INPUT_PASSWORD, password)
         self.click_on_element(AccountPageLocators.BUTTON_LOGIN)
         self.wait_visibility_of_element(MainPageLocators.BUTTON_MAKE_ORDER, timeout=15)
+
+
+    # НОВЫЕ МЕТОДЫ ДЛЯ ВОССТАНОВЛЕНИЯ ПАРОЛЯ
+    
+    @allure.step('Нажать на кнопку "Войти в аккаунт"')
+    def click_login_account_button(self):
+        """Нажатие на кнопку 'Войти в аккаунт' на главной странице"""
+        self.click_on_element(MainPageLocators.BUTTON_LOGIN_TO_ORDER)
+
+    
+    @allure.step('Нажать на ссылку "Восстановить пароль"')
+    def click_recover_password_link(self):
+        """Нажатие на ссылку 'Восстановить пароль' на форме входа"""
+        self.click_on_element(MainPageLocators.RECOVER_PASSWORD_LINK)
+
+
+    @allure.step('Проверить отображение формы входа')
+    def check_login_form_displayed(self):
+        """Проверка отображения формы входа"""
+        return self.check_displaying_of_element(AccountPageLocators.INPUT_EMAIL)
 
 
     # Дополнительные методы для повышения надёжности тестов
