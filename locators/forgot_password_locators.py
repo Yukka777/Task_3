@@ -15,3 +15,7 @@ class ForgotPasswordLocators:
     
     # Ссылка "Войти"
     BACK_TO_LOGIN_LINK = (By.XPATH, "//a[text()='Войти']")
+    
+    # URL для проверки переходов
+    RESET_PASSWORD_URL = "reset-password"
+    FORGOT_PASSWORD_URL = "forgot-password"
