@@ -33,3 +33,6 @@ class MainPageLocators:
     ORDER_NUMBER_LOADING = (By.XPATH, "//h2[contains(@class, 'Modal_modal__title')]")
     ORDER_NUMBER_CONFIRM = (By.XPATH, "//h2[contains(@class, 'Modal_modal__title')]")
     BUTTON_CLOSE_CONFIRMATION = (By.XPATH, "//div[contains(@class, 'Modal_modal__')]//button[contains(@class, 'Modal_modal__close')]")
+
+    # Локатор для востановления пароля
+    RECOVER_PASSWORD_LINK = (By.XPATH, "//a[text()='Восстановить пароль']")
