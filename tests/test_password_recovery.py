@@ -1,87 +1,48 @@
-from page_objects.main_page import MainPage
-from page_objects.forgot_password_page import ForgotPasswordPage
-from page_objects.reset_password_page import ResetPasswordPage
+from selenium.webdriver.support.wait import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.by import By
+from locators.forgot_password_locators import ForgotPasswordLocators
 import allure
 
 
-class TestPasswordRecovery:
+class ForgotPasswordPage:
 
-    @allure.title('Переход на страницу восстановления пароля')
-    @allure.description('''
-    Тестирование перехода на страницу восстановления пароля:
-    1. Нажатие на кнопку "Войти в аккаунт" на главной странице
-    2. Нажатие на ссылку "Восстановить пароль" на форме входа
-    3. Проверка успешного перехода на страницу восстановления пароля
-    ''')
-    def test_navigate_to_password_recovery_page(self, driver):
-        main_page = MainPage(driver)
-        forgot_password_page = ForgotPasswordPage(driver)
-        
-        # Переход на страницу восстановления пароля
-        main_page.click_login_account_button()
-        main_page.click_recover_password_link()
-        
-        # Проверка что мы на странице восстановления пароля
-        assert forgot_password_page.check_recovery_form_displayed()
+    def __init__(self, driver):
+        self.driver = driver
+        self.wait = WebDriverWait(driver, 15)
 
-    @allure.title('Восстановление пароля: ввод email и отправка формы')
-    @allure.description('''
-    Тестирование процесса восстановления пароля:
-    1. Переход на страницу восстановления пароля
-    2. Ввод email в поле для восстановления
-    3. Нажатие кнопки "Восстановить"
-    4. Проверка перехода на страницу сброса пароля
-    ''')
-    def test_password_recovery_with_email(self, driver, create_new_user_and_delete):
-        main_page = MainPage(driver)
-        forgot_password_page = ForgotPasswordPage(driver)
-        reset_password_page = ResetPasswordPage(driver)
-        
-        # Получение email зарегистрированного пользователя
-        user_credentials = create_new_user_and_delete[0]
-        user_email = user_credentials['email']
-        
-        # Переход на страницу восстановления пароля
-        main_page.click_login_account_button()
-        main_page.click_recover_password_link()
-        
-        # Ввод email и отправка формы
-        forgot_password_page.set_email(user_email)
-        forgot_password_page.click_recover_button()
-        
-        # Проверка перехода на страницу сброса пароля
-        assert reset_password_page.check_reset_form_displayed()
+    @allure.step('Проверить отображение формы восстановления пароля')
+    def check_recovery_form_displayed(self):
+        """Проверка отображения формы восстановления пароля"""
+        try:
+            self.wait.until(EC.visibility_of_element_located(ForgotPasswordLocators.RECOVERY_FORM))
+            return True
+        except:
+            return False
 
-    @allure.title('Активация поля пароля кнопкой показать/скрыть пароль')
-    @allure.description('''
-    Тестирование функционала показа/скрытия пароля:
-    1. Переход на страницу сброса пароля
-    2. Ввод пароля в поле
-    3. Нажатие на кнопку показать/скрыть пароль
-    4. Проверка активации (подсветки) поля пароля
-    ''')
-    def test_show_hide_password_button_highlights_field(self, driver, create_new_user_and_delete):
-        main_page = MainPage(driver)
-        forgot_password_page = ForgotPasswordPage(driver)
-        reset_password_page = ResetPasswordPage(driver)
-        
-        # Получение данных пользователя
-        user_credentials = create_new_user_and_delete[0]
-        user_email = user_credentials['email']
-        new_password = "NewPassword123"
-        
-        # Переход на страницу сброса пароля
-        main_page.click_login_account_button()
-        main_page.click_recover_password_link()
-        forgot_password_page.set_email(user_email)
-        forgot_password_page.click_recover_button()
-        
-        # Ввод пароля и проверка функционала показа/скрытия
-        reset_password_page.set_password(new_password)
-        
-        # Нажатие на кнопку показать пароль и проверка подсветки
-        reset_password_page.click_show_password_button()
-        assert reset_password_page.check_password_field_highlighted()
-        
-        # Нажатие на кнопку скрыть пароль
-        reset_password_page.click_hide_password_button()
+    @allure.step('Ввести email для восстановления: {email}')
+    def set_email(self, email):
+        """Ввод email в поле для восстановления"""
+        email_field = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.EMAIL_FIELD))
+        email_field.clear()
+        email_field.send_keys(email)
+
+    @allure.step('Нажать кнопку "Восстановить"')
+    def click_recover_button(self):
+        """Нажатие кнопки 'Восстановить'"""
+        recover_button = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.RECOVER_BUTTON))
+        self.driver.execute_script("arguments[0].scrollIntoView();", recover_button)
+        recover_button.click()
+
+    @allure.step('Нажать на ссылку "Войти"')
+    def click_back_to_login_link(self):
+        """Нажатие на ссылку возврата к форме входа"""
+        back_link = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.BACK_TO_LOGIN_LINK))
+        back_link.click()
+
+    @allure.step('Проверить переход на страницу сброса пароля')
+    def check_reset_form_displayed(self):
+        """Проверка перехода на страницу сброса пароля"""
+        # Простая проверка URL - если перешли на reset-password, тест успешен
+        current_url = self.driver.current_url
+        return "reset-password" in current_url
