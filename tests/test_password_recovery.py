@@ -1,48 +1,50 @@
-from selenium.webdriver.support.wait import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.by import By
-from locators.forgot_password_locators import ForgotPasswordLocators
+from page_objects.main_page import MainPage
+from page_objects.forgot_password_page import ForgotPasswordPage
+from page_objects.account_page import AccountPage
+from urls import Urls
 import allure
 
 
-class ForgotPasswordPage:
+class TestPasswordRecovery:
 
-    def __init__(self, driver):
-        self.driver = driver
-        self.wait = WebDriverWait(driver, 15)
+    @allure.title('Переход на страницу восстановления пароля по кнопке «Восстановить пароль»')
+    def test_navigate_to_password_recovery_page(self, driver):
+        main_page = MainPage(driver)
+        forgot_password_page = ForgotPasswordPage(driver)
+        
+        driver.get(Urls.BASE_URL)
+        main_page.click_login_account_button()
+        main_page.click_recover_password_link()
+        assert forgot_password_page.check_recovery_form_displayed()
 
-    @allure.step('Проверить отображение формы восстановления пароля')
-    def check_recovery_form_displayed(self):
-        """Проверка отображения формы восстановления пароля"""
-        try:
-            self.wait.until(EC.visibility_of_element_located(ForgotPasswordLocators.RECOVERY_FORM))
-            return True
-        except:
-            return False
+    @allure.title('Ввод почты и клик по кнопке «Восстановить»')
+    def test_password_recovery_with_email(self, driver, create_new_user_and_delete):
+        main_page = MainPage(driver)
+        forgot_password_page = ForgotPasswordPage(driver)
+        
+        user_credentials = create_new_user_and_delete[0]
+        user_email = user_credentials['email']
+        
+        driver.get(Urls.BASE_URL)
+        main_page.click_login_account_button()
+        main_page.click_recover_password_link()
+        forgot_password_page.set_email(user_email)
+        forgot_password_page.click_recover_button()
+        
+        # Используем метод ожидания из Page Object
+        forgot_password_page.wait_for_reset_page()
+        
+        # Проверяем переход
+        assert forgot_password_page.check_reset_form_displayed()
 
-    @allure.step('Ввести email для восстановления: {email}')
-    def set_email(self, email):
-        """Ввод email в поле для восстановления"""
-        email_field = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.EMAIL_FIELD))
-        email_field.clear()
-        email_field.send_keys(email)
-
-    @allure.step('Нажать кнопку "Восстановить"')
-    def click_recover_button(self):
-        """Нажатие кнопки 'Восстановить'"""
-        recover_button = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.RECOVER_BUTTON))
-        self.driver.execute_script("arguments[0].scrollIntoView();", recover_button)
-        recover_button.click()
-
-    @allure.step('Нажать на ссылку "Войти"')
-    def click_back_to_login_link(self):
-        """Нажатие на ссылку возврата к форме входа"""
-        back_link = self.wait.until(EC.element_to_be_clickable(ForgotPasswordLocators.BACK_TO_LOGIN_LINK))
-        back_link.click()
-
-    @allure.step('Проверить переход на страницу сброса пароля')
-    def check_reset_form_displayed(self):
-        """Проверка перехода на страницу сброса пароля"""
-        # Простая проверка URL - если перешли на reset-password, тест успешен
-        current_url = self.driver.current_url
-        return "reset-password" in current_url
+    @allure.title('Клик по кнопке показать/скрыть пароль делает поле активным — подсвечивает его')
+    def test_show_hide_password_button_highlights_field(self, driver):
+        main_page = MainPage(driver)
+        account_page = AccountPage(driver)
+        
+        driver.get(Urls.BASE_URL)
+        main_page.click_on_personal_account_in_header()
+        test_password = "TestPassword123"
+        account_page.enter_password(test_password)
+        account_page.click_show_password_button()
+        assert account_page.check_password_field_highlighted()
