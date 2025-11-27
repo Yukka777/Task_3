@@ -9,25 +9,6 @@ import ssl
 import random
 import string
 
-# Деактивация проверок SSL соединения
-os.environ['PYTHONHTTPSVERIFY'] = '0'
-os.environ['CURL_CA_BUNDLE'] = ''
-
-# Отключение верификации SSL на системном уровне
-try:
-    _create_unverified_https_context = ssl._create_unverified_context
-except AttributeError:
-    pass
-else:
-    ssl._create_default_https_context = _create_unverified_https_context
-
-# Инициализация сессии HTTP с отключенной SSL верификацией
-session = requests.Session()
-session.verify = False
-adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
-session.mount('http://', adapter)
-session.mount('https://', adapter)
-
 # Утилиты генерации тестовых данных
 def create_random_email():
     """Создание произвольного email адреса для тестирования"""
@@ -43,6 +24,30 @@ def create_random_password():
 def create_random_name():
     """Создание произвольного имени пользователя"""
     return ''.join(random.choices(string.ascii_letters, k=10))
+
+@pytest.fixture(scope='session')
+def http_session():
+    """Фикстура для настройки HTTP сессии с отключенной SSL верификацией (scope=session)"""
+    # Деактивация проверок SSL соединения
+    os.environ['PYTHONHTTPSVERIFY'] = '0'
+    os.environ['CURL_CA_BUNDLE'] = ''
+
+    # Отключение верификации SSL на системном уровне
+    try:
+        _create_unverified_https_context = ssl._create_unverified_context
+    except AttributeError:
+        pass
+    else:
+        ssl._create_default_https_context = _create_unverified_https_context
+
+    # Инициализация сессии HTTP с отключенной SSL верификацией
+    session = requests.Session()
+    session.verify = False
+    adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
+    session.mount('http://', adapter)
+    session.mount('https://', adapter)
+
+    return session
 
 @pytest.fixture(params=['firefox', 'chrome'])
 def driver(request):
@@ -110,8 +115,8 @@ def driver(request):
         if driver_instance:
             driver_instance.quit()
 
-@pytest.fixture
-def create_new_user_and_delete():
+@pytest.fixture(scope="session")
+def create_new_user_and_delete(http_session):
     """Создание временного пользователя с автоматической очисткой после тестов"""
     # Формирование случайных учетных данных
     credentials = {
@@ -120,13 +125,13 @@ def create_new_user_and_delete():
         'name': create_random_name()
     }
     
-    # Использование сессии с отключенной SSL проверкой
-    registration_response = session.post(Urls.USER_REGISTER, data=credentials)
+    # Использование переданной сессии (http_session) с отключенной SSL проверкой
+    registration_response = http_session.post(Urls.USER_REGISTER, data=credentials)
     response_data = registration_response.json()
 
     # Предоставление данных для тестирования
     yield credentials, response_data
 
-    # Автоматическая очистка тестового пользователя
+    # Автоматическая очистка тестового пользователя после всей сессии
     auth_token = response_data['accessToken']
-    session.delete(Urls.USER_DELETE, headers={'Authorization': auth_token})
+    http_session.delete(Urls.USER_DELETE, headers={'Authorization': auth_token})
