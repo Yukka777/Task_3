@@ -8,6 +8,10 @@ import os
 import ssl
 import random
 import string
+from page_objects.main_page import MainPage
+from page_objects.forgot_password_page import ForgotPasswordPage
+from page_objects.account_page import AccountPage
+
 
 # Утилиты генерации тестовых данных
 def create_random_email():
@@ -114,6 +118,27 @@ def driver(request):
     finally:
         if driver_instance:
             driver_instance.quit()
+
+# НОВЫЕ ФИКСТУРЫ - ВНЕ фикстуры driver
+@pytest.fixture
+def navigate_to_password_recovery(driver):
+    """Фикстура для перехода на страницу восстановления пароля"""
+    main_page = MainPage(driver)
+    main_page.click_login_account_button()
+    main_page.click_recover_password_link()
+    return ForgotPasswordPage(driver)
+
+@pytest.fixture
+def navigate_to_login_page(driver):
+    """Фикстура для перехода на страницу логина через личный кабинет"""
+    main_page = MainPage(driver)
+    main_page.click_on_personal_account_in_header()
+    return AccountPage(driver)
+
+@pytest.fixture
+def registered_user(create_new_user_and_delete):
+    """Фикстура для получения данных зарегистрированного пользователя"""
+    return create_new_user_and_delete[0]
 
 @pytest.fixture(scope="session")
 def create_new_user_and_delete(http_session):
